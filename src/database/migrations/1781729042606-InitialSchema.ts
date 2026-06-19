@@ -1,0 +1,120 @@
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+export class InitialSchema1781729042606 implements MigrationInterface {
+    name = 'InitialSchema1781729042606'
+
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "transactions" DROP CONSTRAINT "transactions_sender_user_id_fkey"`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP CONSTRAINT "transactions_receiver_user_id_fkey"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_transactions_tx_hash"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_transactions_sender"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_transactions_receiver"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_transactions_status"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_transactions_created"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_users_slack_id"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_users_txdc_name"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_users_wallet_address"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_users_status"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_audit_action"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_audit_slack_id"`);
+        await queryRunner.query(`DROP INDEX "public"."idx_audit_created"`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP CONSTRAINT "transactions_status_check"`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP CONSTRAINT "transactions_type_check"`);
+        await queryRunner.query(`ALTER TABLE "users" DROP CONSTRAINT "users_role_check"`);
+        await queryRunner.query(`ALTER TABLE "users" DROP CONSTRAINT "users_registration_status_check"`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP COLUMN "status"`);
+        await queryRunner.query(`CREATE TYPE "public"."transactions_status_enum" AS ENUM('pending', 'pending_confirmation', 'confirmed', 'failed', 'rejected')`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD "status" "public"."transactions_status_enum" NOT NULL DEFAULT 'pending_confirmation'`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP COLUMN "type"`);
+        await queryRunner.query(`CREATE TYPE "public"."transactions_type_enum" AS ENUM('transfer', 'deposit', 'withdrawal')`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD "type" "public"."transactions_type_enum" NOT NULL DEFAULT 'transfer'`);
+        await queryRunner.query(`ALTER TABLE "transactions" ALTER COLUMN "confirmation_blocks" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "transactions" ALTER COLUMN "required_confirmations" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP COLUMN "created_at"`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP COLUMN "updated_at"`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "role"`);
+        await queryRunner.query(`CREATE TYPE "public"."users_role_enum" AS ENUM('user', 'admin', 'whitelisted')`);
+        await queryRunner.query(`ALTER TABLE "users" ADD "role" "public"."users_role_enum" NOT NULL DEFAULT 'user'`);
+        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "registration_status"`);
+        await queryRunner.query(`CREATE TYPE "public"."users_registration_status_enum" AS ENUM('pending', 'active', 'suspended', 'revoked')`);
+        await queryRunner.query(`ALTER TABLE "users" ADD "registration_status" "public"."users_registration_status_enum" NOT NULL DEFAULT 'active'`);
+        await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "daily_volume_used" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "daily_transaction_count" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "created_at"`);
+        await queryRunner.query(`ALTER TABLE "users" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "updated_at"`);
+        await queryRunner.query(`ALTER TABLE "users" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ALTER COLUMN "success" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" DROP COLUMN "created_at"`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`);
+        await queryRunner.query(`CREATE INDEX "IDX_0deaa0ee5092d45fac99139de7" ON "transactions" ("tx_hash") `);
+        await queryRunner.query(`CREATE INDEX "IDX_da87c55b3bbbe96c6ed88ea7ee" ON "transactions" ("status") `);
+        await queryRunner.query(`CREATE INDEX "IDX_5b6c6b1d0a684db1fb5954304a" ON "users" ("slack_id") `);
+        await queryRunner.query(`CREATE INDEX "IDX_11d116e4b78e680b5621df67ef" ON "users" ("txdc_name") `);
+        await queryRunner.query(`CREATE INDEX "IDX_196ef3e52525d3cd9e203bdb1d" ON "users" ("wallet_address") `);
+        await queryRunner.query(`CREATE INDEX "IDX_cee5459245f652b75eb2759b4c" ON "audit_logs" ("action") `);
+        await queryRunner.query(`CREATE INDEX "IDX_3656603fd60219e74ed4e3a23a" ON "audit_logs" ("slack_id") `);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD CONSTRAINT "FK_31aa75ad82e16169a44212ea098" FOREIGN KEY ("sender_user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD CONSTRAINT "FK_8338493109d9bcae38425e53abd" FOREIGN KEY ("receiver_user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "transactions" DROP CONSTRAINT "FK_8338493109d9bcae38425e53abd"`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP CONSTRAINT "FK_31aa75ad82e16169a44212ea098"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_3656603fd60219e74ed4e3a23a"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_cee5459245f652b75eb2759b4c"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_196ef3e52525d3cd9e203bdb1d"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_11d116e4b78e680b5621df67ef"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_5b6c6b1d0a684db1fb5954304a"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_da87c55b3bbbe96c6ed88ea7ee"`);
+        await queryRunner.query(`DROP INDEX "public"."IDX_0deaa0ee5092d45fac99139de7"`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" DROP COLUMN "created_at"`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ADD "created_at" TIMESTAMP WITH TIME ZONE DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "audit_logs" ALTER COLUMN "success" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "updated_at"`);
+        await queryRunner.query(`ALTER TABLE "users" ADD "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "created_at"`);
+        await queryRunner.query(`ALTER TABLE "users" ADD "created_at" TIMESTAMP WITH TIME ZONE DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "daily_transaction_count" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "daily_volume_used" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "registration_status"`);
+        await queryRunner.query(`DROP TYPE "public"."users_registration_status_enum"`);
+        await queryRunner.query(`ALTER TABLE "users" ADD "registration_status" character varying(20) DEFAULT 'active'`);
+        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "role"`);
+        await queryRunner.query(`DROP TYPE "public"."users_role_enum"`);
+        await queryRunner.query(`ALTER TABLE "users" ADD "role" character varying(20) DEFAULT 'user'`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP COLUMN "updated_at"`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP COLUMN "created_at"`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD "created_at" TIMESTAMP WITH TIME ZONE DEFAULT now()`);
+        await queryRunner.query(`ALTER TABLE "transactions" ALTER COLUMN "required_confirmations" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "transactions" ALTER COLUMN "confirmation_blocks" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP COLUMN "type"`);
+        await queryRunner.query(`DROP TYPE "public"."transactions_type_enum"`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD "type" character varying(20) DEFAULT 'transfer'`);
+        await queryRunner.query(`ALTER TABLE "transactions" DROP COLUMN "status"`);
+        await queryRunner.query(`DROP TYPE "public"."transactions_status_enum"`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD "status" character varying(30) DEFAULT 'pending_confirmation'`);
+        await queryRunner.query(`ALTER TABLE "users" ADD CONSTRAINT "users_registration_status_check" CHECK (((registration_status)::text = ANY ((ARRAY['pending'::character varying, 'active'::character varying, 'suspended'::character varying, 'revoked'::character varying])::text[])))`);
+        await queryRunner.query(`ALTER TABLE "users" ADD CONSTRAINT "users_role_check" CHECK (((role)::text = ANY ((ARRAY['user'::character varying, 'admin'::character varying, 'whitelisted'::character varying])::text[])))`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD CONSTRAINT "transactions_type_check" CHECK (((type)::text = ANY ((ARRAY['transfer'::character varying, 'deposit'::character varying, 'withdrawal'::character varying])::text[])))`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD CONSTRAINT "transactions_status_check" CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'pending_confirmation'::character varying, 'confirmed'::character varying, 'failed'::character varying, 'rejected'::character varying])::text[])))`);
+        await queryRunner.query(`CREATE INDEX "idx_audit_created" ON "audit_logs" ("created_at") `);
+        await queryRunner.query(`CREATE INDEX "idx_audit_slack_id" ON "audit_logs" ("slack_id") `);
+        await queryRunner.query(`CREATE INDEX "idx_audit_action" ON "audit_logs" ("action") `);
+        await queryRunner.query(`CREATE INDEX "idx_users_status" ON "users" ("registration_status") `);
+        await queryRunner.query(`CREATE INDEX "idx_users_wallet_address" ON "users" ("wallet_address") `);
+        await queryRunner.query(`CREATE INDEX "idx_users_txdc_name" ON "users" ("txdc_name") `);
+        await queryRunner.query(`CREATE INDEX "idx_users_slack_id" ON "users" ("slack_id") `);
+        await queryRunner.query(`CREATE INDEX "idx_transactions_created" ON "transactions" ("created_at") `);
+        await queryRunner.query(`CREATE INDEX "idx_transactions_status" ON "transactions" ("status") `);
+        await queryRunner.query(`CREATE INDEX "idx_transactions_receiver" ON "transactions" ("receiver_identity") `);
+        await queryRunner.query(`CREATE INDEX "idx_transactions_sender" ON "transactions" ("sender_identity") `);
+        await queryRunner.query(`CREATE INDEX "idx_transactions_tx_hash" ON "transactions" ("tx_hash") `);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD CONSTRAINT "transactions_receiver_user_id_fkey" FOREIGN KEY ("receiver_user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "transactions" ADD CONSTRAINT "transactions_sender_user_id_fkey" FOREIGN KEY ("sender_user_id") REFERENCES "users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+    }
+
+}

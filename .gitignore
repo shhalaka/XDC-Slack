@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.log
+coverage/
+.nyc_output/
+.vscode/
+.idea/
+*.pem
+*.key
+dump.rdb
+.DS_Store

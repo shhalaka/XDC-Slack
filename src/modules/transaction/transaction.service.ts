@@ -67,10 +67,17 @@ export class TransactionService {
   async initiate(
     dto: SendTransactionDto,
   ): Promise<{ transactionId: string; requiresConfirmation: boolean; estimatedGas?: string }> {
+    const senderIdentityRecord = await this.identityService.resolve(dto.senderIdentity);
+    if (!senderIdentityRecord) {
+      throw new NotFoundException(
+        `Sender identity ${dto.senderIdentity} not found. Please register using /txdc register.`,
+      );
+    }
+
     const sender = await this.userRepository.findOne({ where: { slackId: dto.slackId } });
     if (!sender) {
       throw new NotFoundException(
-        'Sender identity not found. Please register using /txdc register.',
+        'Your Slack account is not linked to any identity. Please register using /txdc register.',
       );
     }
 
@@ -160,6 +167,9 @@ export class TransactionService {
   async confirm(dto: ConfirmTransactionDto): Promise<{
     txHash: string;
     status: string;
+    senderIdentity?: string;
+    receiverIdentity?: string;
+    amount?: string;
   }> {
     const tx = await this.txRepository.findOne({
       where: { id: dto.transactionId },
@@ -193,7 +203,13 @@ export class TransactionService {
         success: true,
       });
 
-      return { txHash: '', status: 'rejected' };
+      return {
+        txHash: '',
+        status: 'rejected',
+        senderIdentity: tx.senderIdentity,
+        receiverIdentity: tx.receiverIdentity,
+        amount: tx.amount,
+      };
     }
 
     const encryptedKey = tx.senderUser?.encryptedPrivateKey;
@@ -242,7 +258,13 @@ export class TransactionService {
         `Transaction broadcast: ${tx.txHash} (${tx.senderIdentity} → ${tx.receiverIdentity}: ${tx.amount} TXDC)`,
       );
 
-      return { txHash: result.txHash, status: 'broadcast' };
+      return {
+        txHash: result.txHash,
+        status: 'broadcast',
+        senderIdentity: tx.senderIdentity,
+        receiverIdentity: tx.receiverIdentity,
+        amount: tx.amount,
+      };
     } catch (error) {
       tx.status = TransactionStatus.FAILED;
       tx.errorMessage = (error as Error).message;

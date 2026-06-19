@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { WebClient } from '@slack/web-api';
+import axios from 'axios';
 
 export interface SlackMessage {
   text?: string;
@@ -62,6 +63,18 @@ export class SlackService {
       });
     } catch (error) {
       this.logger.error(`Failed to update message: ${(error as Error).message}`);
+    }
+  }
+
+  async respondToInteraction(responseUrl: string, message: SlackMessage): Promise<void> {
+    try {
+      await axios.post(responseUrl, {
+        text: message.text || '',
+        blocks: message.blocks || [],
+        replace_original: true,
+      });
+    } catch (error) {
+      this.logger.error(`Failed to respond to interaction: ${(error as Error).message}`);
     }
   }
 
@@ -211,15 +224,26 @@ export class SlackService {
     txHash: string,
     status: string,
   ): unknown[] {
-    const isSuccess = status === 'broadcast' || status === 'confirmed';
-    return [
+    const isRejected = status === 'rejected';
+    const isSuccess = !isRejected && (status === 'broadcast' || status === 'confirmed');
+
+    let headerText: string;
+    let statusText: string;
+    if (isSuccess) {
+      headerText = '✅ Transaction Successful';
+      statusText = status === 'broadcast' ? '✅ Broadcasted' : '✅ Confirmed';
+    } else if (isRejected) {
+      headerText = '❌ Transaction Cancelled';
+      statusText = '❌ Cancelled';
+    } else {
+      headerText = '❌ Transaction Failed';
+      statusText = '❌ Failed';
+    }
+
+    const blocks: unknown[] = [
       {
         type: 'header',
-        text: {
-          type: 'plain_text',
-          text: isSuccess ? '✅ Transaction Successful' : '❌ Transaction Failed',
-          emoji: true,
-        },
+        text: { type: 'plain_text', text: headerText, emoji: true },
       },
       { type: 'divider' },
       {
@@ -233,20 +257,20 @@ export class SlackService {
         type: 'section',
         fields: [
           { type: 'mrkdwn', text: `*Amount:*\n${amount} ${symbol}` },
-          {
-            type: 'mrkdwn',
-            text: `*Status:*\n${status === 'broadcast' ? '✅ Broadcasted' : status === 'confirmed' ? '✅ Confirmed' : '❌ Failed'}`,
-          },
+          { type: 'mrkdwn', text: `*Status:*\n${statusText}` },
         ],
       },
-      {
+    ];
+
+    if (txHash) {
+      blocks.push({
         type: 'section',
         text: {
           type: 'mrkdwn',
           text: `*Transaction Hash:*\n\`${txHash}\``,
         },
-      },
-      {
+      });
+      blocks.push({
         type: 'context',
         elements: [
           {
@@ -254,8 +278,10 @@ export class SlackService {
             text: `Track: /txdc transaction ${txHash.slice(0, 10)}...`,
           },
         ],
-      },
-    ];
+      });
+    }
+
+    return blocks;
   }
 
   static buildBalanceBlocks(

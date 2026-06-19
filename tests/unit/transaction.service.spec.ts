@@ -137,6 +137,7 @@ describe('TransactionService', () => {
     });
 
     it('should reject if sender not registered', async () => {
+      identityService.resolve.mockResolvedValue(mockSender);
       userRepo.findOne.mockResolvedValue(null);
 
       await expect(
@@ -150,6 +151,7 @@ describe('TransactionService', () => {
     });
 
     it('should reject if sender is suspended', async () => {
+      identityService.resolve.mockResolvedValue(mockSender);
       userRepo.findOne.mockResolvedValue({
         ...mockSender,
         registrationStatus: 'suspended',
@@ -166,6 +168,7 @@ describe('TransactionService', () => {
     });
 
     it('should reject if sender identity does not match', async () => {
+      identityService.resolve.mockResolvedValue(mockSender);
       userRepo.findOne.mockResolvedValue(mockSender);
 
       await expect(
@@ -179,8 +182,10 @@ describe('TransactionService', () => {
     });
 
     it('should reject if receiver not found', async () => {
+      identityService.resolve
+        .mockResolvedValueOnce(mockSender)
+        .mockResolvedValue(null);
       userRepo.findOne.mockResolvedValue(mockSender);
-      identityService.resolve.mockResolvedValue(null);
 
       await expect(
         service.initiate({

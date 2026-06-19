@@ -13,7 +13,7 @@
  */
 
 import { ethers } from 'ethers';
-import { DataSource } from 'typeorm';
+import { AppDataSource } from '../src/database/data-source';
 import { User } from '../src/database/entities/user.entity';
 
 const RPC_URL = process.env.RPC_URL || 'http://localhost:8545';
@@ -65,21 +65,12 @@ async function main() {
   let addresses: string[];
 
   if (args.includes('--all')) {
-    // Read all wallet addresses from the database
-    const ds = new DataSource({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      username: process.env.DB_USERNAME || 'txdc',
-      password: process.env.DB_PASSWORD || 'txdc_secret',
-      database: process.env.DB_DATABASE || 'txdc_assistant',
-      entities: [User],
-      synchronize: false,
-    });
-
-    await ds.initialize();
-    const users = await ds.getRepository(User).find({ select: ['walletAddress'] });
-    await ds.destroy();
+    // Read all wallet addresses from the database using the shared DataSource
+    if (!AppDataSource.isInitialized) {
+      await AppDataSource.initialize();
+    }
+    const users = await AppDataSource.getRepository(User).find({ select: ['walletAddress'] });
+    await AppDataSource.destroy();
 
     addresses = users.map((u) => u.walletAddress).filter(Boolean);
     if (addresses.length === 0) {
